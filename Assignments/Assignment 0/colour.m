@@ -8,7 +8,7 @@ blue = img(:, :,3);
 img = cat(3, blue, green, red); 
 figure, imshow(img, [0,512]);
 
-img_g = img(:, :, 2);
+img_g = double(img(:, :, 2));
 figure, imshow(img_g, [0,512]);
 
 img_r = img(:, :, 1);

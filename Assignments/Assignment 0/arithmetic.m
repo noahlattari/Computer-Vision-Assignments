@@ -29,9 +29,8 @@ figure, imshow(calculated_img_g, [0,512]);
 
 %c)
 
-img_g_shifted = circshift(img_g, -2, 2);
-% Shift columns two positions circularly to avoid using for loop (helps
-% with elements near the begining and end of matrix).
+img_g_shifted = zeros(512, 512); %Create dummy matrix of 512x512 with all 0s
+img_g_shifted(:, 1:510) = img_g(:, 3:512); %shift columns by two positions except last 2
 figure, imshow(img_g_shifted, [0,512]);
 
 %d)

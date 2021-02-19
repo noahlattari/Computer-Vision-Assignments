@@ -1,11 +1,11 @@
 %Question 4.
 
-%a)
+%a) 
 min_value = min(img_g(:)); %(:) converts the 2d matrix into a vector we can call min/max on.
-disp(min_value); % The minimum of all pixels is 0.
+disp("The min value is: " + min_value); % The minimum of all pixels is 0.
 
 max_value = max(img_g(:));
-disp(max_value); %The maximum of all pixels is 236.
+disp("The max value is: " + max_value); %The maximum of all pixels is 236.
 
 % Manual calculation of mean:
 % sum_of_all_terms = sum(img_g(:));
@@ -18,7 +18,7 @@ disp("The mean is: " + image_mean);
 standard_deviation = std(double((img_g(:)))); % std function needs single or doubles.
 disp("The sd is: " + standard_deviation);
 
-% I computed these by running built-in matlab functions mean() & std() on a
+% I computed these by running built-in matlab functions min(), max() mean() & std() on a
 % vector that represents our img_g pixels, they can also be computed
 % manually as shown in the comments above.
 
@@ -29,7 +29,7 @@ figure, imshow(calculated_img_g, [0,512]);
 
 %c)
 
-img_g_shifted = zeros(512, 512); %Create dummy matrix of 512x512 with all 0s
+img_g_shifted = zeros(512, 512); %Create dummy matrix of size 512x512 with all 0s
 img_g_shifted(:, 1:510) = img_g(:, 3:512); %shift columns by two positions except last 2
 figure, imshow(img_g_shifted, [0,512]);
 

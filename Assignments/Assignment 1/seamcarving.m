@@ -70,8 +70,7 @@ function out = CarvingHelper(image)
     first = 1;
     for r = 2: rows % row 1 is already populated with E row 1
         for c=1: cols 
-            if(r == rows)
-                  
+            if(r == rows)                  
                 M(r, c) = E(r, c) + min(M(r,c), M(r-1,c));
             else
                 M(r, c) = E(r, c) + min([M(r,c), M(r-1,c), M(r+1,c)]); %cant call min on 3 params, put in array first

@@ -1,5 +1,5 @@
+%2.A
 run('VLFEATROOT/toolbox/vl_setup')
-%MAKE SURE WHEN SHOWING AN IMAGE U ADD MINMAX
 
 %2.1 Preprocessing
 imgLeft = imread('parliament-left.jpg');
@@ -8,33 +8,23 @@ imgLeft = single(rgb2gray(imgLeft));
 imgRight = imread('parliament-Right.jpg');
 imgRight = single(rgb2gray(imgRight));
 
-threshold = 5000; %played arouned with this until it looked good
+imgLeftRGB = imread('parliament-left.jpg');
+imgRightRGB = imread('parliament-right.jpg');
 
 %2.2 Detect keypoints and extract descriptors
-% [fLeft, dLeft] = vl_sift(imgLeft);
-% [fRight, dRight] = vl_sift(imgRight);
+[fLeft, dLeft] = vl_sift(imgLeft);
+[fRight, dRight] = vl_sift(imgRight);
 
 %2.3 Match features
-% [matches, scores] = vl_ubcmatch(dLeft, dRight);
+[matches, scores] = vl_ubcmatch(dLeft, dRight);
 
 %2.4 Prune features/Thresholding
 %add the k smallest distances from matches into a new matches matrix
-% pruned_matches = zeros(2, size(matches, 2)); %create zeros matrix same size as our original matches
-% smallestkscores = mink(scores, 1000);
-%these are indexes in matches, these mink will match columns
-%if one mink is 500, then 500th col in matches
-
-% cols = size(smallestkscores, 2);
-% for index = 1 : cols
-%     pruned_matches(1, index) = matches(1, smallestkscores(index));
-%     pruned_matches(2, index) = matches(2, smallestkscores(index));
-% end
-% pruned_matches=pruned_matches(:,1:cols);    
-
+[~, cols] = size(matches);
 pruned_matches=[];
-for i = 1:size(matches, 2)
-    if scores(i) < threshold
-        pruned_matches(:, size(pruned_matches, 2) + 1) = matches(:, i);
+for i = 1:cols
+    if scores(i) < 3500
+        pruned_matches(:, size(pruned_matches, 2) + 1) = matches(:, i); %append match to end of pruned_matches
     end
 end
 
@@ -42,6 +32,7 @@ end
 %estimate an afine transformation mapping one image to the other.
 
 currentBestModel = [];
+cols = size(pruned_matches,2);
 for i = 1 : 300 %random number of iterations to find minimum point set. Kosta mentioned "couple hundred"
      y = randsample(cols, 3); %Need 3 random points as there are 6 unknowns for two images (6/2=3).
      y = y.'; 
@@ -95,12 +86,11 @@ for i = 1 : 300 %random number of iterations to find minimum point set. Kosta me
     counter = 1;
     inliers = (cols);
     for j = 1: cols
-        %if current j is not one of the 3 numbers in y
         x1 = fLeft(1:2, pruned_matches(1,j)); %our left image point
         x2 = T*x1+c; %our transformed point
-        realx2 = fRight(1:2, pruned_matches(2,j));
-        distance = norm(x2 - realx2);
-        if(distance < 3000)
+        realx2 = fRight(1:2, pruned_matches(2,j)); %our point in our original right image
+        distance = norm(x2 - realx2); %get distance from the estimated point and the right image point
+        if(distance < 5000) %random tested number for distances
             inliers(counter) = j;
             counter = counter + 1;
         end
@@ -108,39 +98,47 @@ for i = 1 : 300 %random number of iterations to find minimum point set. Kosta me
 
     [~, inliersCols] = size(inliers);
     [~, bestModelCols] = size(currentBestModel);
-    if (inliersCols + 3) > size(bestModelCols, 2)
+    if (inliersCols) > size(bestModelCols, 2) %If we have more inliers than our previous iteration, update currentBestModel
         inliers(size(inliers, 2) + 1) = y(1);
         inliers(size(inliers, 2) + 1) = y(2);   
         inliers(size(inliers, 2) + 1) = y(3);   
         currentBestModel = inliers;
     end
-
-
 end
 
+%2.6 Compute optimal transformation
 A2 = []; B2 = [];
 [~, bestModelCols] = size(currentBestModel);
 for i = 1:bestModelCols
     point1l = pruned_matches(1, currentBestModel(i));
     point1r = pruned_matches(2, currentBestModel(i));
-    
+    %Rebuild our new Ax=b equation variables uses the best model
     A2=[A2; fLeft(1, point1l),fLeft(2, point1l),1,0,0,0;0,0,0,fLeft(1, point1l),fLeft(2, point1l),1]; 
     B2=[B2;fRight(1, point1r);fRight(2, point1r)];
 end
 
-imgLeftRGB = imread('parliament-left.jpg');
-imgRightRGB = imread('parliament-right.jpg');
+%2.7 Create panorama
 [rightRows, rightCols] = size(imgRightRGB);
-xnew = A2\B2;
-trans = maketform('affine', [xnew(1),xnew(2),0;xnew(4),xnew(5),0;xnew(3),xnew(6), 1]);
-redChannel = imgLeftRGB(:, :, 1); greenChannel = imgLeftRGB(:, :, 2); blueChannel = imgLeftRGB(:, :, 3);
+xnew = A2\B2; 
+transformation = maketform('affine', [xnew(1),xnew(2),0;xnew(4),xnew(5),0;xnew(3),xnew(6), 1]); %apply an affine transformation with our best model
 
-transedImage = cat(3, imtransform(redChannel, trans), imtransform(greenChannel, trans), imtransform(blueChannel, trans));
-temp_image = cat(2, transedImage, zeros ([size(transedImage, 1), 1000, 3])); 
-v_pos = 180;
-h_pos = 1200;
+redChannelLeft = imgLeftRGB(:, :, 1); greenChannelLeft = imgLeftRGB(:, :, 2); blueChannelLeft = imgLeftRGB(:, :, 3); %get our rgb color channels 
+redChannelRight = imgRightRGB(:, :, 1); greenChannelRight = imgRightRGB(:, :, 2); blueChannelRight = imgRightRGB(:, :, 3); 
 
-rightRows = size(imgRightRGB, 1);
-rightCols = size(imgRightRGB, 2);
-temp_image(180:180-1+rightRows, 1200:rightCols+1200-1, :) = imgRightRGB;
-figure, imshow(temp_image, [0,512]);
+resultRed = fixImage(transformation, redChannelLeft, redChannelRight, 1070, 180, 1430); %Helper to stitch the image with values I trial and error tested lol
+resultGreen = fixImage(transformation, greenChannelLeft, greenChannelRight, 1070, 180, 1430);
+resultBlue = fixImage(transformation, blueChannelLeft, blueChannelRight, 1070, 180, 1430);
+
+result = cat(3, resultRed, resultGreen, resultBlue); %Combine all our channels for our final image
+figure, imshow(result, [0,512]);
+
+function result = fixImage(transformation, leftImage, rightImage, offset, xbound, ybound)
+    %Transform the rgb image using the newly estimated transformation
+    transformedImage = imtransform(leftImage, transformation);
+    %Combine transformed left image with an empty large image
+    result = cat(2, transformedImage, zeros([size(transformedImage, 1), offset]));
+    rightRows = size(rightImage, 1);
+    rightCols = size(rightImage, 2);
+    %manually stitch in the empty area with the right image
+    result(xbound:end-73, ybound:end) = rightImage(1: rightRows, 1:rightCols);
+end

@@ -12,7 +12,7 @@ alpha = 10;
 beta = 12;
 gamma = 15;
 
-x = rand([500 1]) - 0.5;
+x = rand([500 1]) - 0.5; %from matlab break
 y = rand([500 1]) - 0.5;
 z = alpha.*x + beta.*y + gamma;
 figure, scatter3(x,y,z);

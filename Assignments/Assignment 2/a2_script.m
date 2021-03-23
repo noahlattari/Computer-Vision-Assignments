@@ -13,3 +13,9 @@ fprintf('Question 2A starting...\n');
 ransac;
 fprintf('Question 2A done! Press enter to continue...\n\n');
 pause;
+
+% Q2.B
+fprintf('Question 2B starting...\n');
+ransachomography;
+fprintf('Question 2B done! Press enter to continue...\n\n');
+pause;

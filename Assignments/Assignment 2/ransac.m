@@ -35,7 +35,7 @@ currentBestModel = [];
 cols = size(pruned_matches,2);
 for i = 1 : 300 %random number of iterations to find minimum point set. Kosta mentioned "couple hundred"
      y = randsample(cols, 3); %Need 3 random points as there are 6 unknowns for two images (6/2=3).
-     y = y.'; 
+     y = y.';  %force it into a column vector
 
     %GOAL: Rewrite x2=Tx1+c as Ax=b. T(2x2) and c(2x1) are our unknowns,
     %x1 is a point on the left image, x2 is a point on the right. 
@@ -85,20 +85,27 @@ for i = 1 : 300 %random number of iterations to find minimum point set. Kosta me
     c = [x(3); x(6)];
     counter = 1;
     inliers = (cols);
+    position = (cols);
     for j = 1: cols
-        x1 = fLeft(1:2, pruned_matches(1,j)); %our left image point
+        x1_1 = fLeft(1, pruned_matches(1,j)); %our left image point
+        x1_2 = fLeft(2, pruned_matches(1,j));
+        x1 = [x1_1; x1_2];
         x2 = T*x1+c; %our transformed point
-        realx2 = fRight(1:2, pruned_matches(2,j)); %our point in our original right image
+        realx2_1 = fRight(1, pruned_matches(2,j)); %our point in our original right image
+        realx2_2 = fRight(2, pruned_matches(2,j));
+        realx2 = [realx2_1; realx2_2];
         distance = norm(x2 - realx2); %get distance from the estimated point and the right image point
         if(distance < 5000) %random tested number for distances
             inliers(counter) = j;
+            position(j) = counter;
             counter = counter + 1;
         end
     end
 
     [~, inliersCols] = size(inliers);
     [~, bestModelCols] = size(currentBestModel);
-    if (inliersCols) > size(bestModelCols, 2) %If we have more inliers than our previous iteration, update currentBestModel
+    [~, positionCols] = size(position);
+    if ((inliersCols > bestModelCols) && (positionCols > 1)) %If we have more inliers than our previous iteration, update currentBestModel
         inliers(size(inliers, 2) + 1) = y(1);
         inliers(size(inliers, 2) + 1) = y(2);   
         inliers(size(inliers, 2) + 1) = y(3);   
@@ -140,5 +147,5 @@ function result = fixImage(transformation, leftImage, rightImage, offset, xbound
     rightRows = size(rightImage, 1);
     rightCols = size(rightImage, 2);
     %manually stitch in the empty area with the right image
-    result(xbound:end-73, ybound:end) = rightImage(1: rightRows, 1:rightCols);
+    result(xbound:end-73, ybound:end) = rightImage(1: rightRows, 1:rightCols); %73 came from trial and error, it fit the best because my model wasnt perfect
 end

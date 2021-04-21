@@ -1,0 +1,71 @@
+synth_1 = imread("./synth/synth_1.png");
+synth_0 = imread("./synth/synth_0.png");
+
+sphere_1 = imread("./sphere/sphere_1.png");
+sphere_0 = imread("./sphere/sphere_0.png");
+
+bt_1 = imread("./corridor/bt_1.png");
+bt_2 = imread("./corridor/bt_0.png");
+
+% synth_1 = myFlow(synth_1, synth_0, 2, 2);
+% imshow(synth_1);
+
+[u, v, bmap] = myFlow(sphere_1, sphere_0, 2, 2);
+
+
+function [u, v, bmap] = myFlow(img1, img2, windowLength, tau)
+    img1 = mat2gray(rgb2gray(img1));
+    img2 = mat2gray(rgb2gray(img2));
+    
+    %use the five-point derivative of Gaussian convolution filter (1/12)*[-1 8 0 -8 1]
+    
+    %Use this filter for spatial derivatives 
+    gauss_filter = (1/12)*[-1 8 0 -8 1]
+    gauss_filter = flip(gauss_filter)
+    
+    I_x = conv2(img1, gauss_filter, 'same');
+    I_y = conv2(img1, gauss_filter', 'same');
+    
+    %Find the temporal derivative for difference of both immages using og
+    %gauss
+    gaussian = fspecial('gaussian',3,1);
+    
+    I_xsq = conv2(I_x .* I_x, ones(windowLength), 'same');
+    I_ysq = conv2(I_y .* I_y, ones(windowLength), 'same');
+    I_xy = conv2(I_x .* I_y, ones(windowLength), 'same');
+    
+    I_t = conv2(img2, gaussian, 'same') - conv2(img1, gaussian, 'same')
+    I_xt = conv2(I_x .*I_t, ones(windowLength), 'same');
+    I_yt = conv2(I_y .*I_t, ones(windowLength), 'same');
+    
+    check = zeros(size(img1));
+    u = zeros(size(img1));
+    v = zeros(size(img1));
+    bmap = zeros(size(img));
+    %least squares for unknowns u and v
+    [rows, cols] = size(img1)
+    
+    for i = 1: rows
+        for j = 1:cols
+            %set up equation variables A and B
+            A = [I_xq(i,j) I_xy(i,j);
+                 I_xy(i,j) I_ysq(i,j)];
+            B = -[I_xt(i,j), I_yt(i,j)];
+     
+            %when their smallest eigenvalue is not zero, or in practice, greater than some threshold
+            if(min(eig(A)) ~= 0 || min(eig(A)) > tau)
+                estimate = piv(A)*B;
+                bmap(i,j) = 1;
+                u(i,j) = estimate(1);
+                v(i,j) = estimate(2);
+            end
+            %At image points where the flow is not computable, set the flow value to zero.
+            %not needed becauuse u v and bmap are prefilled with 0s
+        end
+    end
+    
+    
+ 
+    
+
+end
